@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Manager</title>
+    <style>
+        body { font-family: sans-serif; max-width: 400px; margin: 2rem auto; }
+        .completed { text-decoration: line-through; color: gray; }
+        li { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .controls { margin: 1rem 0; }
+    </style>
+</head>
+<body>
+
+    <h2>My Tasks</h2>
+    <form id="todo-form">
+        <input type="text" id="todo-input" required placeholder="Add a new task...">
+        <button type="submit">Add</button>
+    </form>
+
+    <div class="controls">
+        <button onclick="setFilter('all')">All</button>
+        <button onclick="setFilter('active')">Active</button>
+        <button onclick="setFilter('completed')">Completed</button>
+    </div>
+
+    <ul id="todo-list"></ul>
+
+    <script>
+        // --- State Management ---
+        let state = JSON.parse(localStorage.getItem('todos')) || [];
+        let currentFilter = 'all';
+
+        const todoForm = document.getElementById('todo-form');
+        const todoList = document.getElementById('todo-list');
+
+        function saveAndRender() {
+            localStorage.setItem('todos', JSON.stringify(state));
+            render();
+        }
+
+        // --- Core Logic ---
+        function setFilter(filter) {
+            currentFilter = filter;
+            render();
+        }
+
+        function render() {
+            todoList.innerHTML = '';
+            
+            const filtered = state.filter(todo => {
+                if (currentFilter === 'active') return !todo.completed;
+                if (currentFilter === 'completed') return todo.completed;
+                return true;
+            });
+
+            filtered.forEach(todo => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <input type="checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})">
+                    <span class="${todo.completed ? 'completed' : ''}">${todo.text}</span>
+                    <button onclick="deleteTodo(${todo.id})">Delete</button>
+                `;
+                todoList.appendChild(li);
+            });
+        }
+
+        function toggleTodo(id) {
+            state = state.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            saveAndRender();
+        }
+
+        function deleteTodo(id) {
+            state = state.filter(t => t.id !== id);
+            saveAndRender();
+        }
+
+        todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('todo-input');
+            state.push({ id: Date.now(), text: input.value, completed: false });
+            input.value = '';
+            saveAndRender();
+        });
+
+        // Initial load
+        render();
+    </script>
+</body>
+</html>
