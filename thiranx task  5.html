@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Full-Stack Capstone</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 2rem auto; }
+        .card { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+        .completed { text-decoration: line-through; }
+    </style>
+</head>
+<body>
+
+    <section class="card">
+        <h2>Weather Dashboard</h2>
+        <form id="weather-form">
+            <input type="text" id="city-input" placeholder="Enter city..." required>
+            <button type="submit">Search</button>
+        </form>
+        <div id="weather-result">Enter a city to see live weather.</div>
+    </section>
+
+    <section class="card">
+        <h2>Task List</h2>
+        <form id="todo-form">
+            <input type="text" id="todo-input" placeholder="New task..." required>
+            <button type="submit">Add</button>
+        </form>
+        <ul id="todo-list"></ul>
+    </section>
+
+    <script>
+        // --- 1. State & Data ---
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
+        const API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; 
+
+        // --- 2. Weather Logic (Async) ---
+        document.getElementById('weather-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const city = document.getElementById('city-input').value;
+            const resDiv = document.getElementById('weather-result');
+            
+            try {
+                resDiv.innerText = 'Fetching...';
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${API_KEY}`);
+                if (!res.ok) throw new Error("City not found");
+                const data = await res.json();
+                resDiv.innerHTML = `${data.name}: ${data.main.temp}°C, ${data.weather[0].description}`;
+            } catch (err) {
+                resDiv.innerText = err.message;
+            }
+        });
+
+        // --- 3. Todo Logic (CRUD) ---
+        const todoList = document.getElementById('todo-list');
+        const todoForm = document.getElementById('todo-form');
+
+        function renderTodos() {
+            todoList.innerHTML = todos.map(t => `
+                <li>
+                    <span class="${t.completed ? 'completed' : ''}" onclick="toggleTodo(${t.id})">${t.text}</span>
+                    <button onclick="deleteTodo(${t.id})">Delete</button>
+                </li>
+            `).join('');
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        window.toggleTodo = (id) => {
+            todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            renderTodos();
+        };
+
+        window.deleteTodo = (id) => {
+            todos = todos.filter(t => t.id !== id);
+            renderTodos();
+        };
+
+        todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('todo-input');
+            todos.push({ id: Date.now(), text: input.value, completed: false });
+            input.value = '';
+            renderTodos();
+        });
+
+        renderTodos();
+    </script>
+</body>
+</html>
